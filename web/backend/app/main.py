@@ -41,6 +41,11 @@ app.include_router(auth.router, prefix="/api")
 app.include_router(settings.router, prefix="/api")
 app.include_router(bot.router, prefix="/api")
 
+from fastapi.responses import RedirectResponse
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    return RedirectResponse(url="/static/img/fo_sentinel_favicon.png")
+
 # DB init on startup
 @app.on_event("startup")
 async def startup():
