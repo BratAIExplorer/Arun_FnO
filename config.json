@@ -1,0 +1,109 @@
+{
+    "trading_mode": {
+        "live_trading": true,
+        "strike_depth": 0,
+        "comment": "Set to true for LIVE trading, false for paper trading. strike_depth: 0=ATM, 1=ITM1, 2=ITM2"
+    },
+    "capital": {
+        "initial_capital": 100000,
+        "daily_loss_limit_percent": 5.0
+    },
+    "symbols": {
+        "comment": "Phase 1: 4 Indices - NIFTY, BANKNIFTY, FINNIFTY, SENSEX",
+        "NIFTY 50": {
+            "exchange": "NSE",
+            "token": "26000",
+            "key": "NIFTY50"
+        },
+        "NIFTY BANK": {
+            "exchange": "NSE",
+            "token": "26009",
+            "key": "BANKNIFTY"
+        },
+        "NIFTY FIN SERVICE": {
+            "exchange": "NSE",
+            "token": "26037",
+            "key": "FINNIFTY"
+        },
+        "SENSEX": {
+            "exchange": "BSE",
+            "token": "51",
+            "key": "SENSEX"
+        }
+    },
+    "stop_loss": {
+        "comment": "Stop loss based on UNDERLYING SPOT MOVEMENT (not premium). Safety Net uses premium.",
+        "max_premium_loss_percent": -50.0,
+        "NIFTY50": {
+            "base_sl_percent": 0.7,
+            "vix_adjustments": {
+                "vix_12_15": 0.7,
+                "vix_15_20": 0.75,
+                "vix_above_20": 0.8
+            }
+        },
+        "BANKNIFTY": {
+            "base_sl_percent": 1.2,
+            "vix_adjustments": {
+                "vix_12_15": 1.2,
+                "vix_15_20": 1.25,
+                "vix_above_20": 1.5
+            }
+        },
+        "FINNIFTY": {
+            "base_sl_percent": 1.0,
+            "vix_adjustments": {
+                "vix_12_15": 1.0,
+                "vix_15_20": 1.25,
+                "vix_above_20": 1.5
+            }
+        },
+        "SENSEX": {
+            "base_sl_percent": 1.0,
+            "vix_adjustments": {
+                "vix_12_15": 1.0,
+                "vix_15_20": 1.25,
+                "vix_above_20": 1.5
+            }
+        }
+    },
+    "profit_targets": {
+        "comment": "Profit target based on AMOUNT in Rs (editable)",
+        "profit_target_amount": 250.0
+    },
+    "lot_sizes": {
+        "NIFTY50": {
+            "lot_size": 65,
+            "num_lots": 1
+        },
+        "BANKNIFTY": {
+            "lot_size": 30,
+            "num_lots": 1
+        },
+        "FINNIFTY": {
+            "lot_size": 60,
+            "num_lots": 1
+        },
+        "SENSEX": {
+            "lot_size": 20,
+            "num_lots": 1
+        }
+    },
+    "trading_hours": {
+        "market_open": "09:15",
+        "market_close": "15:30",
+        "entry_cutoff": "15:15"
+    },
+    "indicators": {
+        "vix_min_threshold": 10.0,
+        "rsi_min": 30.0,
+        "rsi_max": 65.0,
+        "adx_min": 25.0,
+        "adx_daily_min": 25.0,
+        "macd_fast": 12,
+        "macd_slow": 26,
+        "macd_signal": 9,
+        "rsi_period": 14,
+        "adx_period": 14
+    }
+}

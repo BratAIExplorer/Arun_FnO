@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SENTINEL HUB | MASTER COMMAND CORE</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@100;400;700&family=Outfit:wght@200;400;700&display=swap"
+        rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        obsidian: '#020508',
+                        cyber: '#00f2ff',
+                        neon: '#ff00ff',
+                        venom: '#39ff14',
+                        ruby: '#ff2e63',
+                        gold: '#d4af37'
+                    },
+                    fontFamily: {
+                        tactical: ['Orbitron', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                        sans: ['Outfit', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        [x-cloak] {
+            display: none !important;
+        }
+
+        :root {
+            --glow-color: rgba(0, 242, 255, 0.4);
+            --bg-color: #010204;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image:
+                linear-gradient(rgba(0, 242, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 242, 255, 0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* Ambient Glows */
+        .glow-sphere {
+            position: fixed;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(0, 242, 255, 0.05) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* Scanline Effect */
+        .scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.02), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.02));
+            background-size: 100% 4px, 3px 100%;
+            z-index: 100;
+            pointer-events: none;
+            opacity: 0.3;
+        }
+
+        .cyber-glass {
+            background: rgba(10, 15, 20, 0.5);
+            backdrop-filter: blur(30px) saturate(180%);
+            border: 1px solid rgba(0, 242, 255, 0.1);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cyber-glass::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(0, 242, 255, 0.4), transparent);
+        }
+
+        .neon-text {
+            text-shadow: 0 0 10px rgba(0, 242, 255, 0.6);
+        }
+
+        @keyframes pulse-energy {
+
+            0%,
+            100% {
+                opacity: 0.3;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.6;
+                transform: scale(1.05);
+            }
+        }
+
+        .pulse-core {
+            animation: pulse-energy 4s infinite ease-in-out;
+        }
+
+        .voice-bar {
+            width: 4px;
+            background: #00f2ff;
+            margin: 0 1px;
+            height: 10px;
+            transition: height 0.1s ease;
+            border-radius: 2px;
+        }
+
+        .listening .voice-bar {
+            animation: bar-dance 0.5s infinite alternate;
+        }
+
+        @keyframes bar-dance {
+            0% {
+                height: 10px;
+            }
+
+            100% {
+                height: 35px;
+            }
+        }
+
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 242, 255, 0.2);
+            border-radius: 10px;
+        }
+
+        .hud-corner {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-color: rgba(0, 242, 255, 0.3);
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body class="text-white font-sans" x-data="sentinelHub()">
+
+    <div class="scanlines"></div>
+    <div class="glow-sphere -top-48 -left-48"></div>
+    <div class="glow-sphere -bottom-48 -right-48"></div>
+
+    <!-- MAIN INTERFACE -->
+    <div class="h-screen w-screen p-8 grid grid-cols-[320px_1fr_380px] grid-rows-[90px_1fr] gap-8 relative z-20">
+
+        <!-- HEADER HUD -->
+        <header class="col-span-3 cyber-glass rounded-[2.5rem] flex items-center justify-between px-12 border-white/5">
+            <div class="flex items-center gap-10">
+                <div class="flex flex-col">
+                    <h1
+                        class="font-tactical text-3xl font-black tracking-[0.3em] text-cyber neon-text uppercase italic">
+                        Sentinel<span class="text-white">Master</span>
+                    </h1>
+                    <div class="flex items-center gap-3 mt-1">
+                        <span
+                            class="text-[9px] font-mono text-white/30 tracking-[0.5em] uppercase">Tactical_Core_v2.0</span>
+                        <div class="w-2 h-2 rounded-full bg-venom shadow-[0_0_10px_#39ff14] pulse-core"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CORE AI STATUS -->
+            <div class="flex items-center gap-12">
+                <div class="flex flex-col items-center">
+                    <div class="flex h-10 items-end mb-2" :class="{ 'listening': voiceActive }">
+                        <template x-for="n in 14">
+                            <div class="voice-bar"></div>
+                        </template>
+                    </div>
+                    <span class="text-[9px] font-tactical tracking-widest text-cyber/40 uppercase"
+                        x-text="voiceActive ? 'DECRYPTING COMMAND...' : 'AI DRIVE STANDBY'"></span>
+                </div>
+
+                <div class="flex flex-col items-end">
+                    <span class="text-[10px] font-mono text-white/20 uppercase tracking-[0.4em]">Stellar Time</span>
+                    <span class="font-tactical text-2xl font-bold tracking-widest text-white/90"
+                        x-text="currentTime"></span>
+                </div>
+            </div>
+        </header>
+
+        <!-- SIDEBAR: CAPITAL & INDEXES -->
+        <aside class="flex flex-col gap-6">
+            <!-- CAPITAL BOX -->
+            <div class="cyber-glass rounded-[2rem] p-8 flex flex-col gap-2 border-white/5">
+                <div class="flex justify-between items-center mb-4">
+                    <span class="font-tactical text-[11px] text-white/30 tracking-widest">CAPITAL_SURGE</span>
+                    <div class="w-10 h-[1px] bg-cyber/20"></div>
+                </div>
+                <div class="text-4xl font-mono                    <div class=" stat-value"
+                    x-text="'Rs ' + stats.capital.toLocaleString()">Rs 0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">DAILY P&L</div>
+                <div class="stat-value" :class="stats.pnl >= 0 ? 'neon-green' : 'neon-red'"
+                    x-text="(stats.pnl >= 0 ? '+' : '') + 'Rs ' + stats.pnl.toLocaleString()"></div>
+            </div>
+            <span class="text-[11px] font-mono opacity-40" x-text="stats.pnlPct + '% delta'"></span>
+    </div>
+    </div>
+
+    <!-- INDEXES GRID -->
+    <div class="flex-1 cyber-glass rounded-[2.5rem] p-6 flex flex-col gap-4 border-white/5 overflow-y-auto">
+        <div
+            class="text-[11px] font-tactical text-white/20 tracking-widest mb-2 uppercase italic border-b border-white/5 pb-4">
+            Global_Sectors</div>
+        <template x-for="(index, key) in market">
+            <div
+                class="group cursor-pointer hover:bg-white/[0.03] transition-all p-4 rounded-2xl border border-transparent hover:border-white/10">
+                <div class="flex justify-between items-start mb-1">
+                    <span class="font-tactical text-[11px] text-white/60 tracking-widest" x-text="key"></span>
+                    <span class="font-mono text-[9px] px-2 py-0.5 rounded border border-white/10"
+                        :class="index.trend === 'bullish' ? 'text-venom border-venom/20' : 'text-ruby border-ruby/20'"
+                        x-text="index.trend.toUpperCase()"></span>
+                </div>
+                <div class="text-2xl font-mono font-black tracking-tighter" x-text="index.spot.toLocaleString()">0</div>
+                <div class="text-[11px] font-black mt-1" :class="index.change >= 0 ? 'text-venom' : 'text-ruby'"
+                    x-text="(index.change >= 0 ? '+ ' : '- ') + Math.abs(index.change) + '%'"></div>
+            </div>
+        </template>
+    </div>
+    </aside>
+
+    <!-- MAIN AREA: VISUAL HUD -->
+    <main class="flex flex-col gap-8 overflow-hidden">
+        <!-- TACTICAL CENTER -->
+        <div
+            class="flex-1 cyber-glass rounded-[3.5rem] p-12 border-white/5 relative flex flex-col items-center justify-center bg-black/40">
+            <!-- AMBIENT GRID -->
+            <div class="absolute inset-0 z-0 opacity-10 pointer-events-none"
+                style="background-image: radial-gradient(rgba(0, 242, 255, 0.4) 1px, transparent 1px); background-size: 30px 30px;">
+            </div>
+
+            <div class="z-10 text-center flex flex-col items-center">
+                <div class="w-32 h-32 rounded-full border border-cyber/20 flex items-center justify-center mb-8 relative group"
+                    @click="toggleVoice()">
+                    <div
+                        class="absolute inset-x-0 inset-y-0 rounded-full border-2 border-cyber/10 animate-ping opacity-20">
+                    </div>
+                    <svg class="w-12 h-12 text-cyber/30 group-hover:text-cyber transition-all" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="0.5"
+                            d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                </div>
+                <h2
+                    class="font-tactical text-4xl font-black italic tracking-[0.5em] text-white/5 select-none uppercase">
+                    Quantum Map Alpha</h2>
+                <p class="font-mono text-[11px] text-cyber/40 tracking-[0.6em] uppercase mt-6 italic" x-text="botState">
+                    Awaiting neural data feed...</p>
+            </div>
+
+            <!-- HUD CORNERS -->
+            <div class="hud-corner top-8 left-8 border-t-2 border-l-2"></div>
+            <div class="hud-corner top-8 right-8 border-t-2 border-r-2"></div>
+            <div class="hud-corner bottom-8 left-8 border-b-2 border-l-2"></div>
+            <div class="hud-corner bottom-8 right-8 border-b-2 border-r-2"></div>
+
+            <!-- DATA STRIP -->
+            <div class="absolute bottom-12 left-16 flex gap-12 font-mono text-[11px]">
+                <div class="flex flex-col">
+                    <span class="text-white/20 uppercase tracking-[0.3em] mb-1">Latency</span>
+                    <span class="text-cyber">2.41ms</span>
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-white/20 uppercase tracking-[0.3em] mb-1">Grid_Lock</span>
+                    <span class="text-venom">STABLE</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- QUICK ACCES COMMANDS -->
+        <div class="h-24 grid grid-cols-4 gap-4">
+            <button
+                class="cyber-glass rounded-2xl flex items-center justify-center font-tactical text-[10px] tracking-widest text-white/40 hover:text-cyber transition-all border-white/5 uppercase">Neural_Sync</button>
+            <button
+                class="cyber-glass rounded-2xl flex items-center justify-center font-tactical text-[10px] tracking-widest text-white/40 hover:text-cyber transition-all border-white/5 uppercase">P&L_Adjust</button>
+            <button
+                class="cyber-glass rounded-2xl flex items-center justify-center font-tactical text-[10px] tracking-widest text-white/40 hover:text-cyber transition-all border-white/5 uppercase"
+                @click="speakStatus()">System_Status</button>
+            <button
+                class="bg-ruby/10 border border-ruby/30 rounded-2xl flex items-center justify-center font-tactical text-[10px] tracking-widest text-ruby font-black hover:bg-ruby/20 transition-all uppercase">Emergency_Abort</button>
+        </div>
+    </main>
+
+    <!-- INTELLIGENCE FEED -->
+    <section class="flex flex-col gap-6 overflow-hidden">
+        <!-- TERMINAL LOG -->
+        <div class="cyber-glass flex-1 rounded-[2.5rem] p-8 flex flex-col border-white/5 overflow-hidden">
+            <div class="flex items-center justify-between mb-8 border-b border-white/5 pb-4">
+                <div class="flex items-center gap-4">
+                    <div class="w-2 h-2 rounded-full bg-cyber shadow-[0_0_10px_rgba(0,242,255,1)] animate-pulse">
+                    </div>
+                    <h3 class="font-tactical text-[11px] font-black tracking-[0.4em] text-white italic">
+                        WAR_INTELLIGENCE</h3>
+                </div>
+                <span class="font-mono text-[9px] text-white/20 uppercase tracking-[0.5em]">Feed_Live</span>
+            </div>
+
+            <!-- ENTRIES -->
+            <div class="flex-1 overflow-y-auto space-y-6 font-mono text-[11px] pr-2" x-ref="logContainer">
+                <template x-for="log in logs">
+                    <div
+                        class="border-l border-white/10 pl-5 py-2 hover:bg-white/[0.02] transition-colors relative group">
+                        <div
+                            class="absolute -left-[3px] top-4 w-[5px] h-[5px] bg-cyber rounded-full group-hover:scale-150 transition-transform">
+                        </div>
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-[9px] text-white/20" x-text="log.timestamp"></span>
+                            <span class="text-[9px] font-bold text-cyber/40 uppercase tracking-widest"
+                                x-text="log.module"></span>
+                        </div>
+                        <div class="text-white/70 leading-relaxed font-light select-text" x-text="log.message">
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- VOICE NOTIFICATION TOAST -->
+        <div x-show="showToast" x-transition:enter="transition ease-out duration-700"
+            x-transition:enter-start="opacity-0 translate-y-10" x-transition:enter-end="opacity-100 translate-y-0"
+            class="h-32 cyber-glass rounded-[2rem] p-6 border-cyber/30 flex items-center gap-6 shadow-[0_0_50px_rgba(0,242,255,0.1)]">
+            <div class="p-4 rounded-full border border-cyber/20 text-cyber pulse-core">
+                <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                        d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217z" />
+                </svg>
+            </div>
+            <div class="flex flex-col">
+                <span class="text-[9px] font-tactical text-cyber tracking-[0.3em] uppercase mb-1">Alpha Voice
+                    Announcement</span>
+                <p class="text-[11px] font-mono font-bold leading-tight" x-text="toastMsg"></p>
+            </div>
+        </div>
+    </section>
+
+    </div>
+
+    <script>
+        function sentinelHub() {
+            return {
+                currentTime: '00:00:00',
+                connectionStatus: 'offline',
+                voiceActive: false,
+                botState: 'Sentinel Master Initializing...',
+                stats: { capital: 100000, pnl: 0, pnlPct: 0.0 },
+                market: {
+                    'NIFTY 50': { spot: 21850, change: 0, trend: 'neutral' },
+                    'BANKNIFTY': { spot: 46120, change: 0, trend: 'neutral' },
+                    'FINNIFTY': { spot: 20540, change: 0, trend: 'neutral' },
+                    'SENSEX': { spot: 72000, change: 0, trend: 'neutral' },
+                    'INDIA VIX': { spot: 14.5, change: 0, trend: 'stable' }
+                },
+                logs: [],
+                ws: null,
+                showToast: false,
+                toastMsg: '',
+                lastAlertId: '',
+
+                init() {
+                    setInterval(() => {
+                        this.currentTime = new Date().toLocaleTimeString('en-US', { hour12: false });
+                    }, 1000);
+
+                    this.connectWS();
+                    this.addLog('SYSTEM', 'Sentinel Master Core initialized. Glassmorphism UI active.');
+
+                    setTimeout(() => {
+                        this.aiSpeak("Sentinel Master Online. 4 quadrant index tracking engaged. Robotic consciousness synced.");
+                    }, 2000);
+                },
+
+                connectWS() {
+                    this.connectionStatus = 'connecting';
+                    const wsUrl = 'ws://' + window.location.host + '/ws/bot';
+                    this.ws = new WebSocket(wsUrl);
+
+                    this.ws.onopen = () => {
+                        this.connectionStatus = 'online';
+                        this.addLog('NETWORK', 'Neural link synchronized with core engine.');
+                    };
+
+                    this.ws.onmessage = (event) => {
+                        const message = JSON.parse(event.data);
+                        if (message.type === 'LOG') {
+                            this.addLog(message.data.module, message.data.message);
+                        } else if (message.type === 'DATA') {
+                            this.handleData(message.data);
+                        }
+                    };
+
+                    this.ws.onclose = () => {
+                        this.connectionStatus = 'offline';
+                        setTimeout(() => this.connectWS(), 5000);
+                    };
+                },
+
+                handleData(data) {
+                    if (data.type === 'MARKET_UPDATE') {
+                        const keyMap = {
+                            "NIFTY 50": "NIFTY 50",
+                            "NIFTY BANK": "BANKNIFTY",
+                            "NIFTY FIN SERVICE": "FINNIFTY",
+                            "SENSEX": "SENSEX"
+                        };
+                        const key = keyMap[data.symbol] || data.symbol;
+                        if (this.market[key]) {
+                            const oldSpot = this.market[key].spot;
+                            this.market[key].spot = data.spot;
+                            this.market[key].change = (((data.spot - oldSpot) / (oldSpot || 1)) * 100).toFixed(2);
+                            this.market[key].trend = data.macd_trend ? data.macd_trend.toLowerCase() : 'neutral';
+                        }
+                        this.market['INDIA VIX'].spot = data.vix;
+                    } else if (data.type === 'POSITION_UPDATE') {
+                        this.stats.pnl = data.pnl;
+                        this.stats.pnlPct = data.pnl_pct.toFixed(2);
+                        this.botState = `MONITORING: ${data.underlying} // P&L: Rs ${data.pnl}`;
+
+                        // Threshold Alerts
+                        if (data.pnl > 10000 && this.lastAlertId !== 'hi_pnl') {
+                            this.aiSpeak(`Profit Alert. Position ${data.underlying} has crossed 10 thousand rupees.`);
+                            this.lastAlertId = 'hi_pnl';
+                        }
+                    } else if (data.type === 'INITIALIZED') {
+                        this.stats.capital = data.initial_capital;
+                        this.addLog('VAULT', 'Capital matrix synced.');
+                    } else if (data.type === 'TRADE_EXECUTION') {
+                        this.aiSpeak(`Trade Executed. ${data.msg}`);
+                        this.addLog('EXECUTOR', data.msg);
+                    }
+                },
+
+                toggleVoice() {
+                    this.voiceActive = !this.voiceActive;
+                    if (this.voiceActive) {
+                        this.botState = "Sentinel Listening... Give Command.";
+                        this.startVoiceRecognition();
+                    } else {
+                        this.botState = "Master Core standby.";
+                    }
+                },
+
+                startVoiceRecognition() {
+                    if (!('webkitSpeechRecognition' in window)) return;
+                    const recognition = new webkitSpeechRecognition();
+                    recognition.onresult = (event) => {
+                        const cmd = event.results[0][0].transcript.toLowerCase();
+                        this.handleVoiceCommand(cmd);
+                    };
+                    recognition.onend = () => { this.voiceActive = false; };
+                    recognition.start();
+                },
+
+                handleVoiceCommand(cmd) {
+                    this.addLog('VOICE', 'Processing command: ' + cmd);
+                    if (cmd.includes("status") || cmd.includes("report")) {
+                        this.speakStatus();
+                    } else if (cmd.includes("kill") || cmd.includes("abort")) {
+                        this.aiSpeak("Master Emergency Protocol triggered. Aborting all trades.");
+                    } else {
+                        this.aiSpeak("Command not recognized in neural matrix.");
+                    }
+                },
+
+                speakStatus() {
+                    const statusText = `Reporting status. Current capital is ${this.stats.capital} rupees. Professional profit today is ${this.stats.pnl} rupees. India VIX is stable at ${this.market['INDIA VIX'].spot}. Current focus is ${this.botState}.`;
+                    this.aiSpeak(statusText);
+                },
+
+                aiSpeak(text) {
+                    this.toastMsg = text;
+                    this.showToast = true;
+                    setTimeout(() => this.showToast = false, 6000);
+
+                    const msg = new SpeechSynthesisUtterance(text);
+                    msg.rate = 0.8;
+                    msg.pitch = 0.6;
+                    const voices = window.speechSynthesis.getVoices();
+                    msg.voice = voices.find(v => v.name.includes("UK English Male")) || voices[0];
+                    window.speechSynthesis.speak(msg);
+                },
+
+                addLog(module, message) {
+                    this.logs.unshift({
+                        timestamp: new Date().toLocaleTimeString('en-US', { hour12: false }),
+                        module: module.toUpperCase(),
+                        message: message
+                    });
+                    if (this.logs.length > 60) this.logs.pop();
+
+                    this.$nextTick(() => {
+                        if (this.$refs.logContainer) this.$refs.logContainer.scrollTop = 0;
+                    });
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>
