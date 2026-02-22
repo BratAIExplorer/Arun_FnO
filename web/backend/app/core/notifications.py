@@ -14,13 +14,21 @@ async def send_email(subject: str, recipient: str, body: str, html_body: str = N
     Defaulting to system settings for auth emails.
     """
     host = os.getenv("SYSTEM_SMTP_HOST")
-    port = int(os.getenv("SYSTEM_SMTP_PORT", 587))
     user = os.getenv("SYSTEM_SMTP_USER")
     password = os.getenv("SYSTEM_SMTP_PASS")
+    
+    # Safely parse port
+    try:
+        port_env = os.getenv("SYSTEM_SMTP_PORT")
+        port = int(port_env) if port_env and port_env.strip() else 587
+    except ValueError:
+        logger.warning(f"Invalid SMTP port: {os.getenv('SYSTEM_SMTP_PORT')}. Using default 587.")
+        port = 587
 
-    if not all([host, user, password]):
-        logger.warning(f"⚠️ SMTP settings not configured. Cannot send email to {recipient}.")
-        # For development debugging, we log the "email" content
+    # If SMTP is not fully configured, log and return (don't crash the whole route)
+    if not host or not user or not password:
+        logger.warning(f"⚠️ SMTP settings not fully configured (HOST={host}, USER={user}). Skipping email to {recipient}.")
+        # Debug log for development
         logger.info(f"--- [MOCK EMAIL] ---\nTo: {recipient}\nSubject: {subject}\nBody: {body}\n-------------------")
         return False
 
