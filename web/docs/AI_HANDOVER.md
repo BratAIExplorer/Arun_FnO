@@ -47,10 +47,12 @@
     │       └── js/app.js       ← All dashboard logic
     ├── nginx/nginx.conf        ← Reverse proxy config
     ├── .env.example
-    └── docs/
+    ├── docs/
         ├── CHANGELOG.md        ← This version's features
         ├── AI_HANDOVER.md      ← This file
-        └── FEATURES_COMPARISON.md ← Original vs Web comparison
+        ├── FEATURES_COMPARISON.md ← Original vs Web comparison
+        ├── SECURITY_NO_DOMAIN.md ← How to secure IP access
+        └── DEPLOY_VPS.md       ← VPS setup steps
 ```
 
 ---

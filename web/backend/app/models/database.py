@@ -129,25 +129,41 @@ class TradeRecord(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
-    position_id = Column(String, index=True)
-    underlying = Column(String)
-    trade_type = Column(String)  # CE or PE
+    position_id = Column(String, index=True)  # From broker/mStock
+    underlying = Column(String)               # NIFTY, BANKNIFTY, etc.
+    trade_type = Column(String)               # CE or PE
     option_symbol = Column(String, nullable=True)
     strike_price = Column(Float, nullable=True)
+    trading_mode = Column(String, default="PAPER") # PAPER or LIVE
 
+    # Entry data
     entry_time = Column(DateTime)
     entry_price = Column(Float)
     entry_spot = Column(Float)
     lot_size = Column(Integer)
-    sl_percentage = Column(Float)
     vix_at_entry = Column(Float)
+    
+    # Technical Indicators at Entry (for Deep Analysis)
+    rsi_at_entry = Column(Float, nullable=True)
+    adx_at_entry = Column(Float, nullable=True)
+    macd_at_entry = Column(Float, nullable=True)
+    macd_signal_at_entry = Column(Float, nullable=True)
+    supertrend_at_entry = Column(Float, nullable=True)
+    
+    # Capture all 8 trade signals as a JSON string
+    signals_json = Column(Text, nullable=True) 
 
+    # Exit data
     exit_time = Column(DateTime, nullable=True)
     exit_price = Column(Float, nullable=True)
     exit_spot = Column(Float, nullable=True)
-    exit_reason = Column(String, nullable=True)
+    exit_reason = Column(String, nullable=True) # Target, SL, Time, Manual
+    sl_percentage = Column(Float)
+    
+    # Financials
     pnl = Column(Float, nullable=True)
     pnl_percentage = Column(Float, nullable=True)
+    charges = Column(Float, default=0.0)
 
     created_at = Column(DateTime, default=datetime.utcnow)
 
