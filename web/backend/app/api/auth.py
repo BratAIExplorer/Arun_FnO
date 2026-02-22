@@ -1,12 +1,13 @@
 """
 Authentication API routes
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Optional
 from pydantic import BaseModel, EmailStr
+import secrets
 
 from app.models.database import get_db, User, UserSettings
 from app.core.security import (
@@ -14,6 +15,7 @@ from app.core.security import (
     create_access_token, decode_token,
     ACCESS_TOKEN_EXPIRE_MINUTES
 )
+from app.core.notifications import send_confirmation_email, send_reset_email
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
