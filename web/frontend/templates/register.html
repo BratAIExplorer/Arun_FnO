@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>F&O Sentinel — Login</title>
+    <title>F&O Sentinel — Register</title>
     <link rel="stylesheet" href="https://unpkg.com/@knadh/oat@0.1.0/oat.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -16,13 +16,19 @@
         <div class="login-card glass-card">
             <div class="login-logo">
                 <span class="logo-icon">🍎</span>
-                <h1 class="logo-title">F&O Sentinel</h1>
-                <p class="logo-sub">Algorithmic Trading Platform</p>
+                <h1 class="logo-title">Join F&O Sentinel</h1>
+                <p class="logo-sub">Create your account to start trading</p>
             </div>
 
             <div id="error-banner" class="error-banner hidden"></div>
+            <div id="success-banner" class="success-banner hidden"></div>
 
-            <form id="login-form" autocomplete="on">
+            <form id="register-form" autocomplete="on">
+                <div class="field-group">
+                    <label for="full_name">Full Name</label>
+                    <input type="text" id="full_name" name="full_name" placeholder="John Doe" required
+                        autocomplete="name">
+                </div>
                 <div class="field-group">
                     <label for="email">Email</label>
                     <input type="email" id="email" name="email" placeholder="trader@example.com" required
@@ -32,71 +38,63 @@
                     <label for="password">Password</label>
                     <div class="input-with-toggle">
                         <input type="password" id="password" name="password" placeholder="••••••••" required
-                            autocomplete="current-password">
+                            autocomplete="new-password">
                         <button type="button" class="eye-btn" onclick="togglePassword()">👁</button>
                     </div>
                 </div>
-                <div class="auth-links" style="margin-top:-0.5rem;margin-bottom:1.5rem;text-align:right;">
-                    <a href="/forgot-password"
-                        style="font-size:0.8rem;color:var(--accent-blue);text-decoration:none;">Forgot Password?</a>
-                </div>
-                <button type="submit" id="login-btn" class="btn-primary btn-full">
-                    <span id="login-text">Sign In</span>
-                    <span id="login-spinner" class="spinner hidden"></span>
+                <button type="submit" id="register-btn" class="btn-primary btn-full">
+                    <span id="register-text">Create Account</span>
+                    <span id="register-spinner" class="spinner hidden"></span>
                 </button>
             </form>
 
-            <div class="signup-prompt"
+            <div class="login-prompt"
                 style="text-align:center;margin-top:1.5rem;font-size:0.9rem;color:var(--text-secondary);">
-                Don't have an account? <a href="/register"
-                    style="color:var(--accent-blue);text-decoration:none;font-weight:600;">Sign Up</a>
+                Already have an account? <a href="/login"
+                    style="color:var(--accent-blue);text-decoration:none;font-weight:600;">Sign In</a>
             </div>
-
 
             <p class="login-footer">F&O Sentinel v1.0 · Powered by mStock</p>
         </div>
     </div>
 
     <script>
-        // Redirect if already logged in
-        if (localStorage.getItem('fno_token')) {
-            window.location.href = '/app';
-        }
-
         function togglePassword() {
             const p = document.getElementById('password');
             p.type = p.type === 'password' ? 'text' : 'password';
         }
 
-        document.getElementById('login-form').addEventListener('submit', async (e) => {
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const btn = document.getElementById('login-btn');
-            const spinner = document.getElementById('login-spinner');
-            const text = document.getElementById('login-text');
+            const btn = document.getElementById('register-btn');
+            const spinner = document.getElementById('register-spinner');
+            const text = document.getElementById('register-text');
             const errorBanner = document.getElementById('error-banner');
+            const successBanner = document.getElementById('success-banner');
 
             btn.disabled = true;
             spinner.classList.remove('hidden');
             text.classList.add('hidden');
             errorBanner.classList.add('hidden');
+            successBanner.classList.add('hidden');
 
+            const full_name = document.getElementById('full_name').value;
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
 
             try {
-                const resp = await fetch('/api/auth/login', {
+                const resp = await fetch('/api/auth/register', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: `username=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password, full_name })
                 });
                 const data = await resp.json();
                 if (resp.ok) {
-                    localStorage.setItem('fno_token', data.access_token);
-                    localStorage.setItem('fno_user', data.user_name);
-                    localStorage.setItem('fno_email', data.user_email);
-                    window.location.href = '/app';
+                    successBanner.textContent = 'Account created! Redirecting to login...';
+                    successBanner.classList.remove('hidden');
+                    setTimeout(() => window.location.href = '/login', 2000);
                 } else {
-                    errorBanner.textContent = data.detail || 'Login failed. Check your credentials.';
+                    errorBanner.textContent = data.detail || 'Registration failed.';
                     errorBanner.classList.remove('hidden');
                 }
             } catch (err) {

@@ -31,31 +31,50 @@ class Token(BaseModel):
     user_email: str
     user_name: str
 
+class ForgotPassword(BaseModel):
+    email: EmailStr
+
+class ResetPassword(BaseModel):
+    token: str
+    new_password: str
+
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
     payload = decode_token(token)
-    if not payload:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-    email = payload.get("sub")
-    if not email:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    if payload is None:
+        raise credentials_exception
+    email: str = payload.get("sub")
+    if email is None:
+        raise credentials_exception
     user = db.query(User).filter(User.email == email).first()
-    if not user or not user.is_active:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or inactive")
+    if user is None:
+        raise credentials_exception
     return user
 
 
 @router.post("/register", response_model=dict)
-def register(user_data: UserCreate, db: Session = Depends(get_db)):
+async def register(
+    user_data: UserCreate,
+    request: Request,
+    db: Session = Depends(get_db)
+):
     """Register a new user"""
     existing = db.query(User).filter(User.email == user_data.email).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
 
+    conf_token = secrets.token_urlsafe(32)
     user = User(
         email=user_data.email,
         hashed_password=get_password_hash(user_data.password),
-        full_name=user_data.full_name
+        full_name=user_data.full_name,
+        confirmation_token=conf_token,
+        email_confirmed=False
     )
     db.add(user)
     db.flush()
@@ -66,7 +85,63 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
 
-    return {"message": "User registered successfully", "user_id": user.id}
+    # Send confirmation email
+    domain = str(request.base_url).rstrip("/")
+    await send_confirmation_email(user.email, conf_token, domain)
+
+    return {"message": "User registered successfully. Please check your email for confirmation."}
+
+
+@router.get("/confirm-email")
+def confirm_email(token: str, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.confirmation_token == token).first()
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid confirmation token")
+
+    user.email_confirmed = True
+    user.confirmation_token = None
+    db.commit()
+    return {"message": "Email confirmed successfully! You can now log in."}
+
+
+@router.post("/forgot-password")
+async def forgot_password(
+    data: ForgotPassword,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    user = db.query(User).filter(User.email == data.email).first()
+    if not user:
+        # Don't reveal if user exists for security, just return success
+        return {"message": "If an account exists with this email, a reset link has been sent."}
+
+    token = secrets.token_urlsafe(32)
+    user.reset_token = token
+    user.reset_token_expiry = datetime.utcnow() + timedelta(hours=1)
+    db.commit()
+
+    domain = str(request.base_url).rstrip("/")
+    await send_reset_email(user.email, token, domain)
+
+    return {"message": "Reset link sent successfully."}
+
+
+@router.post("/reset-password")
+def reset_password(data: ResetPassword, db: Session = Depends(get_db)):
+    user = db.query(User).filter(
+        User.reset_token == data.token,
+        User.reset_token_expiry > datetime.utcnow()
+    ).first()
+
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+
+    user.hashed_password = get_password_hash(data.new_password)
+    user.reset_token = None
+    user.reset_token_expiry = None
+    db.commit()
+
+    return {"message": "Password reset successful! You can now log in."}
 
 
 @router.post("/login", response_model=Token)
@@ -74,9 +149,17 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     """Login and get JWT token"""
     user = db.query(User).filter(User.email == form_data.username).first()
     if not user or not verify_password(form_data.password, user.hashed_password):
-        raise HTTPException(status_code=400, detail="Incorrect email or password")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Account is disabled")
+
+    # Optional: Force email confirmation check
+    # if not user.email_confirmed:
+    #     raise HTTPException(status_code=400, detail="Please confirm your email before logging in.")
 
     token = create_access_token(
         data={"sub": user.email},
@@ -97,5 +180,6 @@ def get_me(current_user: User = Depends(get_current_user)):
         "id": current_user.id,
         "email": current_user.email,
         "full_name": current_user.full_name,
-        "is_admin": current_user.is_admin
+        "is_admin": current_user.is_admin,
+        "email_confirmed": current_user.email_confirmed
     }

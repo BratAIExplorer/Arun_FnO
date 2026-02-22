@@ -12,3 +12,4 @@ requests>=2.28.0
 pandas>=1.5.0
 numpy>=1.23.0
 pytz>=2022.1
+aiosmtplib>=2.0.0

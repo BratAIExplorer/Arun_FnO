@@ -32,6 +32,14 @@ class User(Base):
     is_admin = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+    # Email confirmation
+    email_confirmed = Column(Boolean, default=False)
+    confirmation_token = Column(String, nullable=True)
+    
+    # Password reset
+    reset_token = Column(String, nullable=True)
+    reset_token_expiry = Column(DateTime, nullable=True)
+
     settings = relationship("UserSettings", back_populates="user", uselist=False, cascade="all, delete-orphan")
     trades = relationship("TradeRecord", back_populates="user", cascade="all, delete-orphan")
 

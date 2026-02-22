@@ -57,3 +57,18 @@ async def serve_app(request: Request):
 @app.get("/login")
 async def serve_login(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
+
+
+@app.get("/register")
+async def serve_register(request: Request):
+    return templates.TemplateResponse("register.html", {"request": request})
+
+
+@app.get("/forgot-password")
+async def serve_forgot_password(request: Request):
+    return templates.TemplateResponse("forgot-password.html", {"request": request})
+
+
+@app.get("/reset-password")
+async def serve_reset_password(request: Request):
+    return templates.TemplateResponse("reset-password.html", {"request": request})
