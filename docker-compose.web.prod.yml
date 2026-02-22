@@ -1,0 +1,39 @@
+# F&O Sentinel — VPS PRODUCTION
+# Usage: docker-compose -f docker-compose.web.prod.yml up -d
+# VPS: 76.13.179.32 — Port 8080 (standalone, no conflict with other projects)
+version: '3.9'
+
+services:
+  fno-sentinel:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: fno_sentinel_prod
+    expose:
+      - "8000"
+    volumes:
+      - fno_data:/app/data
+      - fno_logs:/app/logs
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-sqlite:////app/data/trading.db}
+      - SECRET_KEY=${SECRET_KEY}
+      - ENVIRONMENT=production
+    restart: always
+    command: [ "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2" ]
+
+  fno-nginx:
+    image: nginx:alpine
+    container_name: fno_nginx_prod
+    ports:
+      - "8080:80" # Port 8080 — unique to this project on 76.13.179.32
+    volumes:
+      - ./web/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - fno-sentinel
+    restart: always
+
+volumes:
+  fno_data:
+    name: fno_sentinel_data
+  fno_logs:
+    name: fno_sentinel_logs

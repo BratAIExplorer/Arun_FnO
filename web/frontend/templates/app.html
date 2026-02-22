@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>F&O Sentinel — Dashboard</title>
+    <link rel="stylesheet" href="https://unpkg.com/@knadh/oat@0.1.0/oat.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/main.css">
+</head>
+
+<body>
+    <div class="app-layout" id="app">
+
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-left">
+                <span class="header-logo">🍎</span>
+                <span class="header-title">F&O Sentinel</span>
+            </div>
+            <div class="header-right">
+                <div id="mode-badge" class="mode-badge paper">
+                    <span class="mode-dot"></span>
+                    <span id="mode-text">PAPER</span>
+                </div>
+                <span class="user-chip" id="user-chip">Loading...</span>
+                <button class="btn-ghost" onclick="logout()">Logout</button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="app-main">
+
+            <!-- ① COMMAND CENTER -->
+            <div style="text-align:center;margin-bottom:1.5rem;">
+                <button id="main-cta" class="cta-btn start" onclick="handleBotToggle()">
+                    <span class="cta-dot"></span>
+                    <span id="cta-label">START BOT</span>
+                </button>
+                <div id="uptime-display" style="margin-top:0.5rem;font-size:0.75rem;color:var(--text-muted);"></div>
+            </div>
+
+            <!-- ② OTP Alert (hidden by default) -->
+            <div id="otp-alert" class="hidden"
+                style="background:rgba(255,159,10,0.12);border:1px solid rgba(255,159,10,0.3);border-radius:var(--radius-sm);padding:0.85rem 1rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;">
+                <span style="color:var(--accent-orange);font-size:0.85rem;font-weight:500;">📱 OTP required — check your
+                    registered mobile</span>
+                <button class="btn-primary" style="padding:0.4rem 0.85rem;font-size:0.8rem;"
+                    onclick="showOtpModal()">Enter OTP</button>
+            </div>
+
+            <!-- ③ STAT CARDS -->
+            <div class="stat-grid">
+                <div class="stat-card glass-card">
+                    <div class="stat-label">Capital</div>
+                    <div class="stat-value" id="stat-capital">₹—</div>
+                    <div class="capital-bar-wrap">
+                        <div class="capital-bar-bg">
+                            <div class="capital-bar-fill" id="capital-bar" style="width:0%"></div>
+                        </div>
+                    </div>
+                    <div class="stat-sub" id="stat-capital-sub">— deployed</div>
+                </div>
+                <div class="stat-card glass-card">
+                    <div class="stat-label">Today's P&L</div>
+                    <div class="stat-value" id="stat-pnl">₹0.00</div>
+                    <div class="stat-sub" id="stat-trades">0 trade(s) today</div>
+                </div>
+                <div class="stat-card glass-card">
+                    <div class="stat-label">Profit Cap Left</div>
+                    <div class="stat-value" id="stat-cap-left">₹—</div>
+                    <div class="stat-sub">Daily limit remaining</div>
+                </div>
+                <div class="stat-card glass-card">
+                    <div class="stat-label">Bot Status</div>
+                    <div class="stat-value" id="stat-status" style="font-size:1rem;">STOPPED</div>
+                    <div class="stat-sub" id="stat-uptime">Uptime: 0s</div>
+                </div>
+            </div>
+
+            <!-- ④ ACTIVE POSITIONS -->
+            <div class="section">
+                <div class="section-header" onclick="toggleSection('positions')">
+                    <span class="section-title">🟢 Active Positions <span id="positions-count"
+                            style="font-weight:400;color:var(--text-muted);">(0)</span></span>
+                    <span class="section-arrow" id="positions-arrow">▼</span>
+                </div>
+                <div class="section-body open" id="positions-body">
+                    <div class="section-inner">
+                        <div id="positions-list">
+                            <div class="no-positions">No active positions</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ⑤ LIVE SIGNALS -->
+            <div class="section">
+                <div class="section-header" onclick="toggleSection('signals')">
+                    <span class="section-title">📡 Live Signals</span>
+                    <span class="section-arrow" id="signals-arrow">▼</span>
+                </div>
+                <div class="section-body open" id="signals-body">
+                    <div class="section-inner">
+                        <div class="signals-grid" id="signals-grid">
+                            <div class="signal-card"><span class="signal-name">NIFTY50</span>
+                                <div class="signal-badges"><span class="signal-badge waiting">Loading...</span></div>
+                            </div>
+                            <div class="signal-card"><span class="signal-name">BANKNIFTY</span>
+                                <div class="signal-badges"><span class="signal-badge waiting">Loading...</span></div>
+                            </div>
+                            <div class="signal-card"><span class="signal-name">FINNIFTY</span>
+                                <div class="signal-badges"><span class="signal-badge off">OFF</span></div>
+                            </div>
+                            <div class="signal-card"><span class="signal-name">SENSEX</span>
+                                <div class="signal-badges"><span class="signal-badge off">OFF</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ⑥ STRATEGY SETTINGS -->
+            <div class="section">
+                <div class="section-header" onclick="toggleSection('settings')">
+                    <span class="section-title">⚙️ Strategy Settings</span>
+                    <span class="section-arrow" id="settings-arrow">▼</span>
+                </div>
+                <div class="section-body" id="settings-body">
+                    <div class="section-inner">
+                        <div id="settings-msg"></div>
+
+                        <!-- Capital & Risk -->
+                        <div class="settings-group">
+                            <div class="settings-group-title">💰 Capital &amp; Risk</div>
+                            <div class="settings-row">
+                                <div class="settings-field"><label>Wallet Amount (₹)</label><input type="number"
+                                        id="s-capital" placeholder="100000"></div>
+                                <div class="settings-field"><label>Daily Loss Limit (%)</label><input type="number"
+                                        id="s-loss-limit" step="0.1" placeholder="5.0"></div>
+                                <div class="settings-field"><label>Daily Profit Cap (₹)</label><input type="number"
+                                        id="s-profit-cap" placeholder="1200"></div>
+                            </div>
+                            <div class="settings-field" style="margin-bottom:0.75rem;">
+                                <label>Trading Mode</label>
+                                <div class="radio-group">
+                                    <div class="radio-opt" id="mode-paper" onclick="setMode('PAPER')">📝 PAPER</div>
+                                    <div class="radio-opt" id="mode-live" onclick="setMode('LIVE')">⚡ LIVE</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Strategy Conditions -->
+                        <div class="settings-group">
+                            <div class="settings-group-title">📊 Strategy Conditions</div>
+                            <div class="settings-row">
+                                <div class="settings-field"><label>RSI Min</label><input type="number" id="s-rsi-min"
+                                        step="1" placeholder="30"></div>
+                                <div class="settings-field"><label>RSI Max</label><input type="number" id="s-rsi-max"
+                                        step="1" placeholder="65"></div>
+                                <div class="settings-field"><label>ADX Min (Daily)</label><input type="number"
+                                        id="s-adx" step="0.5" placeholder="25.0"></div>
+                                <div class="settings-field"><label>VIX Minimum</label><input type="number" id="s-vix"
+                                        step="0.5" placeholder="10.0"></div>
+                            </div>
+                            <div class="settings-row">
+                                <div class="settings-field"><label>Profit Target (₹)</label><input type="number"
+                                        id="s-target" placeholder="250"></div>
+                                <div class="settings-field">
+                                    <label>Strike Depth</label>
+                                    <select id="s-strike">
+                                        <option value="0">0 — ATM</option>
+                                        <option value="1">1 — ITM-1</option>
+                                        <option value="2">2 — ITM-2</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Trading Hours -->
+                        <div class="settings-group">
+                            <div class="settings-group-title">⏰ Trading Hours</div>
+                            <div class="settings-row">
+                                <div class="settings-field"><label>Market Open</label><input type="time" id="s-open"
+                                        value="09:15"></div>
+                                <div class="settings-field"><label>Entry Cutoff</label><input type="time" id="s-cutoff"
+                                        value="15:15"></div>
+                            </div>
+                        </div>
+
+                        <!-- Stop Loss Bands -->
+                        <div class="settings-group">
+                            <div class="settings-group-title">📉 Stop Loss — per Index, per VIX Band</div>
+                            <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:0.75rem;">Low = VIX
+                                12-15 &nbsp;|&nbsp; Mid = VIX 15-20 &nbsp;|&nbsp; High = VIX 20+</div>
+                            <div class="settings-row">
+                                <div class="settings-field"><label>NIFTY Low %</label><input type="number"
+                                        id="s-nifty-sl-low" step="0.05" placeholder="0.70"></div>
+                                <div class="settings-field"><label>NIFTY Mid %</label><input type="number"
+                                        id="s-nifty-sl-mid" step="0.05" placeholder="0.75"></div>
+                                <div class="settings-field"><label>NIFTY High %</label><input type="number"
+                                        id="s-nifty-sl-high" step="0.05" placeholder="0.80"></div>
+                            </div>
+                            <div class="settings-row">
+                                <div class="settings-field"><label>BANKNIFTY Low %</label><input type="number"
+                                        id="s-bn-sl-low" step="0.05" placeholder="1.20"></div>
+                                <div class="settings-field"><label>BANKNIFTY Mid %</label><input type="number"
+                                        id="s-bn-sl-mid" step="0.05" placeholder="1.25"></div>
+                                <div class="settings-field"><label>BANKNIFTY High %</label><input type="number"
+                                        id="s-bn-sl-high" step="0.05" placeholder="1.50"></div>
+                            </div>
+                            <div class="settings-row">
+                                <div class="settings-field"><label>FINNIFTY Low %</label><input type="number"
+                                        id="s-fn-sl-low" step="0.05" placeholder="1.00"></div>
+                                <div class="settings-field"><label>FINNIFTY Mid %</label><input type="number"
+                                        id="s-fn-sl-mid" step="0.05" placeholder="1.25"></div>
+                                <div class="settings-field"><label>FINNIFTY High %</label><input type="number"
+                                        id="s-fn-sl-high" step="0.05" placeholder="1.50"></div>
+                            </div>
+                            <div class="settings-row">
+                                <div class="settings-field"><label>SENSEX Low %</label><input type="number"
+                                        id="s-sx-sl-low" step="0.05" placeholder="1.00"></div>
+                                <div class="settings-field"><label>SENSEX Mid %</label><input type="number"
+                                        id="s-sx-sl-mid" step="0.05" placeholder="1.25"></div>
+                                <div class="settings-field"><label>SENSEX High %</label><input type="number"
+                                        id="s-sx-sl-high" step="0.05" placeholder="1.50"></div>
+                            </div>
+                        </div>
+
+                        <!-- Lot Sizes & Active Indices -->
+                        <div class="settings-group">
+                            <div class="settings-group-title">📦 Lot Sizes &amp; Active Indices</div>
+                            <div class="settings-row">
+                                <div class="settings-field"><label>NIFTY Lots</label><input type="number"
+                                        id="s-nifty-lots" min="1" placeholder="1"></div>
+                                <div class="settings-field"><label>BANKNIFTY Lots</label><input type="number"
+                                        id="s-bn-lots" min="1" placeholder="1"></div>
+                                <div class="settings-field"><label>FINNIFTY Lots</label><input type="number"
+                                        id="s-fn-lots" min="1" placeholder="1"></div>
+                                <div class="settings-field"><label>SENSEX Lots</label><input type="number"
+                                        id="s-sx-lots" min="1" placeholder="1"></div>
+                            </div>
+                            <div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-top:0.5rem;">
+                                <label class="toggle-row"><input type="checkbox" class="toggle" id="s-trade-nifty"><span
+                                        class="toggle-label">Trade NIFTY50</span></label>
+                                <label class="toggle-row"><input type="checkbox" class="toggle" id="s-trade-bn"><span
+                                        class="toggle-label">Trade BANKNIFTY</span></label>
+                                <label class="toggle-row"><input type="checkbox" class="toggle" id="s-trade-fn"><span
+                                        class="toggle-label">Trade FINNIFTY</span></label>
+                                <label class="toggle-row"><input type="checkbox" class="toggle" id="s-trade-sx"><span
+                                        class="toggle-label">Trade SENSEX</span></label>
+                            </div>
+                        </div>
+
+                        <!-- mStock API Credentials -->
+                        <div class="settings-group">
+                            <div class="settings-group-title">🔑 mStock API Credentials</div>
+                            <div class="settings-row">
+                                <div class="settings-field"><label>API Key</label><input type="password" id="s-api-key"
+                                        placeholder="Leave blank to keep existing"></div>
+                                <div class="settings-field"><label>API Secret</label><input type="password"
+                                        id="s-api-secret" placeholder="Leave blank to keep existing"></div>
+                            </div>
+                            <div class="settings-row">
+                                <div class="settings-field"><label>Client Code</label><input type="password"
+                                        id="s-client-code" placeholder="Leave blank to keep existing"></div>
+                                <div class="settings-field"><label>mStock Password</label><input type="password"
+                                        id="s-password" placeholder="Leave blank to keep existing"></div>
+                            </div>
+                            <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-top:0.5rem;">
+                                <button class="btn-ghost" onclick="testConnection()" id="test-conn-btn">🔌 Test
+                                    Connection</button>
+                                <button class="btn-ghost" onclick="initiateLogin()" id="initiate-login-btn">📱 Initiate
+                                    mStock Login (OTP)</button>
+                            </div>
+                            <div id="conn-status" style="margin-top:0.5rem;font-size:0.8rem;"></div>
+                        </div>
+
+                        <!-- Notifications -->
+                        <div class="settings-group">
+                            <div class="settings-group-title">📣 Notifications</div>
+                            <label class="toggle-row" style="margin-bottom:0.75rem;"><input type="checkbox"
+                                    class="toggle" id="s-email-on"><span class="toggle-label">Email
+                                    Notifications</span></label>
+                            <div class="settings-row" id="email-fields">
+                                <div class="settings-field"><label>Email Address</label><input type="email"
+                                        id="s-email-addr" placeholder="you@email.com"></div>
+                                <div class="settings-field"><label>SMTP Host</label><input type="text" id="s-smtp-host"
+                                        placeholder="smtp.gmail.com"></div>
+                                <div class="settings-field"><label>SMTP Port</label><input type="number"
+                                        id="s-smtp-port" placeholder="587"></div>
+                            </div>
+                            <div class="settings-row">
+                                <div class="settings-field"><label>SMTP User</label><input type="text" id="s-smtp-user"
+                                        placeholder="your-gmail@gmail.com"></div>
+                                <div class="settings-field"><label>App Password</label><input type="password"
+                                        id="s-smtp-pass" placeholder="Leave blank to keep existing"></div>
+                            </div>
+
+                            <label class="toggle-row" style="margin-top:0.75rem;margin-bottom:0.75rem;"><input
+                                    type="checkbox" class="toggle" id="s-tg-on"><span class="toggle-label">Telegram
+                                    Notifications</span></label>
+                            <div class="settings-row" id="telegram-fields">
+                                <div class="settings-field"><label>Bot Token</label><input type="password"
+                                        id="s-tg-token" placeholder="Leave blank to keep existing"></div>
+                                <div class="settings-field"><label>Your Chat ID</label><input type="text"
+                                        id="s-tg-chatid" placeholder="123456789"></div>
+                            </div>
+                        </div>
+
+                        <!-- Save -->
+                        <div class="settings-actions">
+                            <button class="btn-primary" onclick="saveSettings()" id="save-btn">
+                                <span id="save-text">💾 Save Settings</span>
+                                <span id="save-spinner" class="spinner hidden"></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ⑦ TERMINAL LOG -->
+            <div class="section">
+                <div class="section-header" onclick="toggleSection('terminal')">
+                    <span class="section-title">⌨️ Terminal Log</span>
+                    <span class="section-arrow open" id="terminal-arrow">▼</span>
+                </div>
+                <div class="section-body open" id="terminal-body">
+                    <div class="section-inner" style="padding:0;">
+                        <div class="terminal" id="terminal">
+                            <div class="terminal-empty">> F&O Sentinel ready. Start the bot to begin trading.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main><!-- /.app-main -->
+    </div><!-- /#app -->
+
+    <!-- OTP Modal -->
+    <div id="otp-modal" class="modal-overlay hidden">
+        <div class="modal-card glass-card">
+            <div class="modal-title">📱 Enter mStock OTP</div>
+            <div class="modal-sub">Check your registered mobile number. OTP expires in 60 seconds.</div>
+            <input type="number" class="otp-input" id="otp-input" placeholder="123456" maxlength="6">
+            <div class="modal-actions">
+                <button class="btn-primary btn-full" onclick="submitOtp()">Submit OTP</button>
+                <button class="btn-ghost btn-full" onclick="hideOtpModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live/Paper Confirm Modal -->
+    <div id="confirm-modal" class="confirm-overlay hidden">
+        <div class="confirm-card glass-card">
+            <div class="confirm-icon" id="confirm-icon">⚡</div>
+            <div class="confirm-title" id="confirm-title">Switch to LIVE mode?</div>
+            <div class="confirm-body" id="confirm-body">Real orders will be placed with mStock. Are you sure?</div>
+            <div class="confirm-actions">
+                <button class="btn-primary btn-full btn-stop" id="confirm-yes" onclick="confirmAction()">Yes,
+                    Proceed</button>
+                <button class="btn-ghost btn-full" onclick="hideConfirm()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+
+</html>

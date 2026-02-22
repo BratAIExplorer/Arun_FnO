@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>F&O Sentinel — Login</title>
+    <link rel="stylesheet" href="https://unpkg.com/@knadh/oat@0.1.0/oat.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body class="login-body">
+    <div class="login-container">
+        <div class="login-card glass-card">
+            <div class="login-logo">
+                <span class="logo-icon">🍎</span>
+                <h1 class="logo-title">F&O Sentinel</h1>
+                <p class="logo-sub">Algorithmic Trading Platform</p>
+            </div>
+
+            <div id="error-banner" class="error-banner hidden"></div>
+
+            <form id="login-form" autocomplete="on">
+                <div class="field-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" placeholder="trader@example.com" required autocomplete="email">
+                </div>
+                <div class="field-group">
+                    <label for="password">Password</label>
+                    <div class="input-with-toggle">
+                        <input type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password">
+                        <button type="button" class="eye-btn" onclick="togglePassword()">👁</button>
+                    </div>
+                </div>
+                <button type="submit" id="login-btn" class="btn-primary btn-full">
+                    <span id="login-text">Sign In</span>
+                    <span id="login-spinner" class="spinner hidden"></span>
+                </button>
+            </form>
+
+            <p class="login-footer">F&O Sentinel v1.0 · Powered by mStock</p>
+        </div>
+    </div>
+
+    <script>
+        // Redirect if already logged in
+        if (localStorage.getItem('fno_token')) {
+            window.location.href = '/app';
+        }
+
+        function togglePassword() {
+            const p = document.getElementById('password');
+            p.type = p.type === 'password' ? 'text' : 'password';
+        }
+
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('login-btn');
+            const spinner = document.getElementById('login-spinner');
+            const text = document.getElementById('login-text');
+            const errorBanner = document.getElementById('error-banner');
+
+            btn.disabled = true;
+            spinner.classList.remove('hidden');
+            text.classList.add('hidden');
+            errorBanner.classList.add('hidden');
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const resp = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `username=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`
+                });
+                const data = await resp.json();
+                if (resp.ok) {
+                    localStorage.setItem('fno_token', data.access_token);
+                    localStorage.setItem('fno_user', data.user_name);
+                    localStorage.setItem('fno_email', data.user_email);
+                    window.location.href = '/app';
+                } else {
+                    errorBanner.textContent = data.detail || 'Login failed. Check your credentials.';
+                    errorBanner.classList.remove('hidden');
+                }
+            } catch (err) {
+                errorBanner.textContent = 'Network error. Please try again.';
+                errorBanner.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                spinner.classList.add('hidden');
+                text.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>

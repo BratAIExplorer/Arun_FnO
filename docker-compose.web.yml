@@ -1,0 +1,20 @@
+# F&O Sentinel — LOCAL development
+# Usage: docker-compose up
+version: '3.9'
+
+services:
+  fno-sentinel:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: fno_sentinel_local
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    environment:
+      - DATABASE_URL=sqlite:////app/data/trading.db
+      - SECRET_KEY=dev_secret_change_in_production
+      - ENVIRONMENT=development
+    restart: unless-stopped
