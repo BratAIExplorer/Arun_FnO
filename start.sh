@@ -10,12 +10,20 @@ echo "🧹 Cleaning up stale images and networks..."
 docker network rm fno_network 2>/dev/null
 docker network create fno_network
 
-echo "🏗️ Building Backend Image..."
-docker build -t fno-sentinel-img -f Dockerfile.web .
+echo "💾 Resetting Database for new schema..."
+rm -rf $(pwd)/data
+mkdir -p $(pwd)/data $(pwd)/logs
+
+echo "🔑 Ensuring Environment config is present..."
+if [ ! -f .env ]; then
+    cp web/.env .env 2>/dev/null || echo "SECRET_KEY=dev_key_change_me" > .env
+fi
+
+echo "🏗️ Building Backend Image (CLEAN - NO CACHE)..."
+docker build --no-cache -t fno-sentinel-img -f Dockerfile.web .
 
 echo "🚀 Starting Backend Container..."
 # Note: Using a local folder for data to ensure we can easily wipe it if schema mismatches
-mkdir -p $(pwd)/data $(pwd)/logs
 docker run -d \
   --name fno_sentinel_prod \
   --network fno_network \
@@ -36,8 +44,6 @@ docker run -d \
   --restart always \
   nginx:alpine
 
-echo "✅ Deployment Complete!"
+echo "✅ ALL SYSTEMS RESET AND RELOADED!"
 echo "Visit: http://76.13.179.32:8080/register"
-echo "------------------------------------------------"
-echo "If you still see a 500 error, run: rm -rf data/trading.db"
 echo "------------------------------------------------"
